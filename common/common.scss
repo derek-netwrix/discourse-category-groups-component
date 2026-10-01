@@ -1,21 +1,37 @@
+@use "lib/viewport";
+
 .custom-category-group {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2em;
+  // Same size-based approach as core's .category-boxes: columns are driven by
+  // a minimum box width rather than a hardcoded count, so column count
+  // reflows with viewport width identically across every group.
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--category-boxes-min-width, 15em), 1fr)
+  );
+  // Matches core's identical grid pattern for nested subcategory boxes
+  // (category-list.scss: repeat(auto-fill, minmax(15em, 1fr)) with gap: 1.5em).
+  gap: 1.5em;
 
-  @media screen and (width <= 800px) {
-    // tabletish
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media screen and (width <= 650px) {
-    // mobilish
+  @include viewport.until(sm) {
+    // mobilish (sm = 640px, was a raw 650px media query)
     grid-template-columns: 1fr;
     gap: 1em;
   }
+}
 
+// Drop the color-swatch badge icon that only shows up when a category has no
+// custom badge icon assigned — applies to every category box/heading this
+// component renders, including parent-category headings like "Community" or
+// "Netwrix Internal". Categories with a real custom icon use a different
+// icon name and are unaffected.
+.custom-categories-groups .d-icon-square-full {
+  display: none;
+}
+
+.custom-category-group {
   li.category-box {
     width: unset;
     margin: 0;
@@ -33,6 +49,27 @@
       pointer-events: auto;
     }
 
+    // Match the native subcategory badge name: body font (not the heading
+    // font h3 inherits by default) and the same --primary color used for
+    // subcategory names elsewhere. Core only applies --primary to
+    // .badge-category__name inside a box that :has(.subcategories) — our
+    // flat boxes never match that, so they'd otherwise fall back to core's
+    // plain --primary-high badge color. Target the badge classes directly
+    // (not just h3) since they carry their own explicit color that
+    // inheriting from h3 alone can't override.
+    h3 {
+      font-family: var(--font-family);
+
+      .badge-category,
+      .badge-category__name {
+        color: var(--primary);
+      }
+    }
+
+    .description {
+      color: var(--primary-medium);
+    }
+
     .description p {
       margin: 0;
     }
@@ -43,12 +80,46 @@
     }
   }
 
+  // Groups with subcategory expansion turned off render as plain, single-level
+  // boxes — match the native centered title style used elsewhere on the site.
+  // Core only pins .badge-category__name / .category-title-appendage font
+  // sizes inside a box that :has(.subcategories); our flat boxes never
+  // qualify, so pin both directly (rather than bumping the shared ambient
+  // font-size, which would also inflate the title/box since nothing else
+  // was pinning it).
+  .category-box.no-subcategories .category-details {
+    h3,
+    .description {
+      text-align: center;
+    }
+
+    .badge-category__name {
+      font-size: var(--font-up-1);
+      // Core's badges.scss truncates with an ellipsis (nowrap + hidden
+      // overflow) since badges are normally inline/sidebar elements. Our
+      // boxes have room to wrap, so let long names like "Endpoint Policy
+      // Manager" wrap onto a second line instead of truncating.
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    .category-title-appendage {
+      font-size: calc(var(--font-up-1) * 0.8);
+    }
+  }
+
   .badge-category__wrapper {
     font-size: unset;
   }
 
   .category-box-heading {
     margin-bottom: 0.5em;
+    // Core's `.category-box:has(.subcategories) .category-box-heading` rule
+    // (category-list.scss) adds this to leave room for the badge icon we
+    // now hide, and outranks us on specificity — !important needed to
+    // override it now that there's no icon to make room for.
+    padding-inline: 0 !important;
   }
 
   .category-box .logo.aspect-image img {
@@ -84,10 +155,16 @@
   h2 {
     margin-top: 0 !important; // too specific in core due to ID
     color: var(--primary);
+    // Measured directly against "Channel Partners"/"MSP Partners"/"Netwrix
+    // Internal" (plain parent-category h3s, computed 24.2514px / 400): that's
+    // var(--font-up-3), not up-1 or up-2. Also override the generic
+    // h1-h5 { font-weight: 500 } rule — those render at 400.
     font-size: var(--font-up-3);
+    font-weight: normal;
   }
 
   .d-icon {
+    // Kept one step below the heading's font-size, same ratio as before.
     font-size: var(--font-up-2);
     top: -0.25em; // alignment
     margin-left: 0.33em;

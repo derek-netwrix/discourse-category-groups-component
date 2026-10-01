@@ -6,6 +6,14 @@ en:
         description: "Define each group with a name and the categories it contains (in display order). Use the translations field to localize a group's name per locale (e.g. locale 'fr')."
         schema:
           properties:
+            hide_subcategories:
+              description: "Render this group as flat, single-level boxes and never drill into any category's subcategories — even if a category in this group has them."
+            collapsible:
+              description: "When disabled, the group's heading shows without a chevron and can't be collapsed/expanded."
+            sort_alphabetically:
+              description: "Sort this group's categories by name automatically. Disable to control the order manually via the order categories are listed above."
+            hide_heading:
+              description: "Hide this group's heading entirely (no title, no collapse toggle) — the categories still render, just without any group chrome."
             visibility:
               description: "Only members of these groups will see this category group on the categories page. Leave blank to show it to everyone. This only controls whether the group is displayed here — it does not change category permissions, and the categories remain visible everywhere else."
       extra_links:

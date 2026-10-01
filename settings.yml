@@ -10,6 +10,18 @@ category_groups:
         required: true
       categories:
         type: categories
+      hide_subcategories:
+        type: boolean
+        default: false
+      collapsible:
+        type: boolean
+        default: true
+      sort_alphabetically:
+        type: boolean
+        default: true
+      hide_heading:
+        type: boolean
+        default: false
       visibility:
         type: groups
       translations:

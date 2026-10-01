@@ -106,11 +106,17 @@ export default class CategoriesGroups extends Component {
 
     // Iterate through parsed settings in the defined order
     const categoryGroupList = parsedSettings.reduce((groups, obj) => {
-      const groupCategories = (obj.categories || [])
+      let groupCategories = (obj.categories || [])
         .map((id) =>
           this.categories.find((cat) => cat.id === Number(id) && !cat.hasMuted)
         )
         .filter(Boolean);
+
+      if (obj.sort_alphabetically !== false) {
+        groupCategories = groupCategories.sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+      }
 
       // Categories in a hidden group still count as grouped, so they don't
       // reappear in the "ungrouped" section for users who can't see the group.
@@ -146,6 +152,9 @@ export default class CategoriesGroups extends Component {
         groups.push({
           name: this.localizedGroupName(obj),
           slug: slugify(obj.name),
+          hideSubcategories: !!obj.hide_subcategories,
+          collapsible: obj.collapsible !== false,
+          hideHeading: !!obj.hide_heading,
           items,
         });
       }
@@ -182,6 +191,7 @@ export default class CategoriesGroups extends Component {
       categoryGroupList.push({
         name: i18n(themePrefix("ungrouped_categories_title")),
         slug: "ungrouped",
+        hideHeading: true,
         items: [
           ...withLinks(ungroupedCategories),
           ...orphanedLinks.map((link) => new ExtraLink(link)),
@@ -242,16 +252,28 @@ export default class CategoriesGroups extends Component {
           {{didInsert this.initializeLocalStorage}}
         >
           {{#each this.categoryGroupList as |t|}}
-            <div class="custom-category-group-{{t.slug}} is-expanded">
-              <a
-                {{on "click" (fn this.toggleCategories t.slug)}}
-                href
-                id={{t.slug}}
-                class="custom-category-group-toggle"
-              >
-                <h2>{{t.name}}</h2>
-                {{icon "angle-right"}}
-              </a>
+            <div
+              class="custom-category-group-{{t.slug}}
+                is-expanded
+                {{if t.hideSubcategories 'flat-group'}}"
+            >
+              {{#unless t.hideHeading}}
+                {{#if t.collapsible}}
+                  <a
+                    {{on "click" (fn this.toggleCategories t.slug)}}
+                    href
+                    id={{t.slug}}
+                    class="custom-category-group-toggle"
+                  >
+                    <h2>{{t.name}}</h2>
+                    {{icon "angle-right"}}
+                  </a>
+                {{else}}
+                  <div class="custom-category-group-toggle not-collapsible">
+                    <h2 id={{t.slug}}>{{t.name}}</h2>
+                  </div>
+                {{/if}}
+              {{/unless}}
 
               <ul class="custom-category-group">
                 {{#each t.items as |c|}}
@@ -274,7 +296,8 @@ export default class CategoriesGroups extends Component {
                       data-url={{c.url}}
                       class="category category-box category-box-{{c.slug}}
                         {{if c.isMuted 'muted'}}
-                        {{if this.noCategoryStyle 'no-category-boxes-style'}}"
+                        {{if this.noCategoryStyle 'no-category-boxes-style'}}
+                        {{if t.hideSubcategories 'no-subcategories'}}"
                     >
                       <div class="category-box-inner">
                         <div class="category-logo">
@@ -289,68 +312,70 @@ export default class CategoriesGroups extends Component {
                             </a>
                           </div>
 
-                          <div class="description">
+                          <div class="description category-title-appendage">
                             {{htmlSafe c.description_excerpt}}
                           </div>
-                          {{#if c.isGrandParent}}
-                            {{#each c.subcategories as |subcategory|}}
-                              <div
-                                data-category-id={{subcategory.id}}
-                                data-notification-level={{subcategory.notificationLevelString}}
-                                style={{borderColor subcategory.color}}
-                                class="subcategory with-subcategories
-                                  {{if
-                                    subcategory.uploaded_logo.url
-                                    'has-logo'
-                                    'no-logo'
-                                  }}"
-                              >
-                                <div class="subcategory-box-inner">
-                                  <CategoryTitleLink
-                                    @tagName="h4"
-                                    @category={{subcategory}}
-                                  />
-                                  {{#if subcategory.subcategories}}
-                                    <div class="subcategories">
-                                      {{#each
-                                        subcategory.subcategories
-                                        as |subsubcategory|
-                                      }}
-                                        {{#unless subsubcategory.isMuted}}
-                                          <span class="subcategory">
-                                            <CategoryTitleBefore
-                                              @category={{subsubcategory}}
-                                            />
-                                            {{categoryLink
-                                              subsubcategory
-                                              hideParent="true"
-                                            }}
-                                          </span>
-                                        {{/unless}}
-                                      {{/each}}
-                                    </div>
-                                  {{/if}}
-                                </div>
-                              </div>
-                            {{/each}}
-                          {{else if c.subcategories}}
-                            <div class="subcategories">
-                              {{#each c.subcategories as |sc|}}
-                                <a class="subcategory" href={{sc.url}}>
-                                  <span class="subcategory-image-placeholder">
-                                    <CdnImg
-                                      @src={{sc.uploaded_logo.url}}
-                                      @class="logo"
-                                      @width={{sc.uploaded_logo.width}}
-                                      @height={{sc.uploaded_logo.height}}
-                                      @alt=""
+                          {{#unless t.hideSubcategories}}
+                            {{#if c.isGrandParent}}
+                              {{#each c.subcategories as |subcategory|}}
+                                <div
+                                  data-category-id={{subcategory.id}}
+                                  data-notification-level={{subcategory.notificationLevelString}}
+                                  style={{borderColor subcategory.color}}
+                                  class="subcategory with-subcategories
+                                    {{if
+                                      subcategory.uploaded_logo.url
+                                      'has-logo'
+                                      'no-logo'
+                                    }}"
+                                >
+                                  <div class="subcategory-box-inner">
+                                    <CategoryTitleLink
+                                      @tagName="h4"
+                                      @category={{subcategory}}
                                     />
-                                  </span>
-                                  {{categoryLink sc hideParent="true"}}
-                                </a>
+                                    {{#if subcategory.subcategories}}
+                                      <div class="subcategories">
+                                        {{#each
+                                          subcategory.subcategories
+                                          as |subsubcategory|
+                                        }}
+                                          {{#unless subsubcategory.isMuted}}
+                                            <span class="subcategory">
+                                              <CategoryTitleBefore
+                                                @category={{subsubcategory}}
+                                              />
+                                              {{categoryLink
+                                                subsubcategory
+                                                hideParent="true"
+                                              }}
+                                            </span>
+                                          {{/unless}}
+                                        {{/each}}
+                                      </div>
+                                    {{/if}}
+                                  </div>
+                                </div>
                               {{/each}}
-                            </div>
-                          {{/if}}
+                            {{else if c.subcategories}}
+                              <div class="subcategories">
+                                {{#each c.subcategories as |sc|}}
+                                  <a class="subcategory" href={{sc.url}}>
+                                    <span class="subcategory-image-placeholder">
+                                      <CdnImg
+                                        @src={{sc.uploaded_logo.url}}
+                                        @class="logo"
+                                        @width={{sc.uploaded_logo.width}}
+                                        @height={{sc.uploaded_logo.height}}
+                                        @alt=""
+                                      />
+                                    </span>
+                                    {{categoryLink sc hideParent="true"}}
+                                  </a>
+                                {{/each}}
+                              </div>
+                            {{/if}}
+                          {{/unless}}
                         </div>
                         <PluginOutlet
                           @name="category-box-below-each-category"
