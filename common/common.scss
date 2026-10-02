@@ -31,6 +31,13 @@
   display: none;
 }
 
+// Same swatch, other badge style: categories using the "square" badge style
+// draw it as a ::before pseudo-element (no SVG), so the rule above never
+// matches them.
+.custom-categories-groups .badge-category.--style-square::before {
+  display: none;
+}
+
 .custom-category-group {
   li.category-box {
     width: unset;
